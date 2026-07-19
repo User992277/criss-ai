@@ -164,8 +164,7 @@ export default function LoginPage() {
   };
 
   return (
-    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com
-">
+    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com">
       
     <div className={`${fraunces.variable} ${inter.variable} min-h-screen flex bg-[#0B0B12] text-[#F5F3EE] font-[family-name:var(--font-body)]`}>
       

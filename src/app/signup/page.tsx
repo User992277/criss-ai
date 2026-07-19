@@ -76,8 +76,7 @@ export default function SignupPage() {
   };
 
   return (
-    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com
-">
+    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com">
     <div className={`${fraunces.variable} ${inter.variable} min-h-screen flex bg-[#0B0B12] text-[#F5F3EE] font-[family-name:var(--font-body)]`}>
       
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 relative z-10">
