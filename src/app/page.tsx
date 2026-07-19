@@ -488,9 +488,7 @@ export default function DashboardPage() {
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition"><Menu size={18}/></button>
             <div className="font-[family-name:var(--font-display)] text-md text-white/80">CRISS AI</div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#C9A570]/30 bg-[#C9A570]/5 px-3 py-1 text-[11px] text-[#C9A570] font-[family-name:var(--font-mono)]">
-            <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C9A570] opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C9A570]"></span></span> Engine: Local Offline
-          </div>
+         
         </header>
 
         {/* CHAT LOG AREA */}
