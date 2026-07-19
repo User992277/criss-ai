@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ShieldAlert, ArrowRight, Loader2, Key } from "lucide-react";
 import { Fraunces, Inter } from "next/font/google";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import router from "next/router";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["400", "500"], style: ["italic"], variable: "--font-display" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
@@ -43,7 +45,39 @@ export default function SignupPage() {
     }
   };
 
+  // GOOGLE OAUTH HANDLER
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("csad_token", data.access_token);
+        setMessage({ text: "Authentication successful! Redirecting...", type: "success" });
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else {
+        setMessage({ text: data.error || "Google authentication failed.", type: "error" });
+      }
+    } catch (error) {
+      setMessage({ text: "Cannot connect to server.", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
+    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com
+">
     <div className={`${fraunces.variable} ${inter.variable} min-h-screen flex bg-[#0B0B12] text-[#F5F3EE] font-[family-name:var(--font-body)]`}>
       
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 relative z-10">
@@ -82,6 +116,23 @@ export default function SignupPage() {
               {isLoading ? <Loader2 size={18} className="animate-spin" /> : <> LOGIN <ArrowRight size={18} /></>}
             </button>
           </form>
+          {/* --- GOOGLE OAUTH SECTION --- */}
+          <div className="mt-8 flex items-center justify-between">
+            <span className="w-1/5 border-b border-white/10 lg:w-1/4"></span>
+            <span className="text-xs text-center text-white/30 uppercase tracking-widest font-medium">Or continue with</span>
+            <span className="w-1/5 border-b border-white/10 lg:w-1/4"></span>
+          </div>
+
+          <div className="mt-6 flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setMessage({ text: "Google window closed or failed.", type: "error" })}
+              theme="filled_black"
+              shape="pill"
+              text="continue_with"
+            />
+          </div>
+          {/* --- END GOOGLE OAUTH SECTION --- */}
 
           {message && (
             <div className={`mt-6 p-4 rounded-xl text-sm border ${
@@ -116,5 +167,6 @@ export default function SignupPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C9A570]/10 blur-[120px] rounded-full pointer-events-none" />
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 }

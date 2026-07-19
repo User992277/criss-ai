@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, ArrowRight, Loader2,Terminal, Lock } from "lucide-react";
 import { Fraunces, Inter } from "next/font/google";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 // The phrases it will cycle through
 const auditSteps = [
@@ -132,8 +133,40 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  // GOOGLE OAUTH HANDLER
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("csad_token", data.access_token);
+        setMessage({ text: "Authentication successful! Redirecting...", type: "success" });
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else {
+        setMessage({ text: data.error || "Google authentication failed.", type: "error" });
+      }
+    } catch (error) {
+      setMessage({ text: "Cannot connect to server.", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
+    <GoogleOAuthProvider clientId="550572944421-c0rbkkhs40f6s6hsn0j16871e4vfi146.apps.googleusercontent.com
+">
+      
     <div className={`${fraunces.variable} ${inter.variable} min-h-screen flex bg-[#0B0B12] text-[#F5F3EE] font-[family-name:var(--font-body)]`}>
       
       {/* LEFT SIDE: The Auth Form */}
@@ -143,6 +176,7 @@ export default function LoginPage() {
           <ShieldAlert className="text-[#C9A570]" size={24} />
           <span className="font-[family-name:var(--font-display)] text-xl italic font-medium tracking-tight">CRISS AI</span>
         </div>
+        
 
         <div className="max-w-md w-full mx-auto">
           <h1 className="text-4xl font-[family-name:var(--font-display)] mb-2">
@@ -211,6 +245,25 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* --- GOOGLE OAUTH SECTION --- */}
+          <div className="mt-8 flex items-center justify-between">
+            <span className="w-1/5 border-b border-white/10 lg:w-1/4"></span>
+            <span className="text-xs text-center text-white/30 uppercase tracking-widest font-medium">Or continue with</span>
+            <span className="w-1/5 border-b border-white/10 lg:w-1/4"></span>
+          </div>
+
+          <div className="mt-6 flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setMessage({ text: "Google window closed or failed.", type: "error" })}
+              theme="filled_black"
+              shape="pill"
+              text="continue_with"
+            />
+          </div>
+          {/* --- END GOOGLE OAUTH SECTION --- */}
+
+
           {/* Back button if they made a typo in their email */}
           {step === "otp" && (
             <button 
@@ -274,5 +327,6 @@ export default function LoginPage() {
       </div>
       
     </div>
+    </GoogleOAuthProvider>
   );
 }
