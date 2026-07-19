@@ -183,6 +183,7 @@ function FormatMessageContent({ content }: { content: string }) {
   );
 }
 export default function DashboardPage() {
+
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -210,7 +211,23 @@ export default function DashboardPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController>(null);
 
- 
+  useEffect(() => {
+    const token = localStorage.getItem("csad_token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+
+  const getAuthHeaders = (contentType: string | null = "application/json") => {
+    const token = localStorage.getItem("csad_token");
+    const headers: Record<string, string> = {
+      "Authorization": `Bearer ${token}`
+    };
+    if (contentType) {
+      headers["Content-Type"] = contentType;
+    }
+    return headers;
+  };
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   
   useEffect(() => { fetchSessions(); }, []);
@@ -219,7 +236,9 @@ export default function DashboardPage() {
 
   const fetchSessions = async () => {
     try {
-      const res = await fetch("/api/sessions");
+      const res = await fetch("/api/sessions",{
+        headers: getAuthHeaders()
+      });
       if (res.ok) setSessions(await res.json());
     } catch (e) { console.error("Failed to fetch sessions"); }
   };
@@ -230,7 +249,9 @@ export default function DashboardPage() {
     setPendingFiles([]);
     setMenuOpenId(null);
     try {
-      const res = await fetch(`/api/sessions/${id}`);
+      const res = await fetch(`/api/sessions/${id}`,{
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         // Parse raw database entries smoothly
@@ -248,7 +269,9 @@ export default function DashboardPage() {
   const handleViewFile = async (filename: string) => {
     setIsLoadingFile(true);
     try {
-      const res = await fetch(`/api/files/${encodeURIComponent(filename)}`);
+      const res = await fetch(`/api/files/${encodeURIComponent(filename)}`, {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setViewingFile({ name: data.filename, content: data.content });
@@ -294,7 +317,7 @@ export default function DashboardPage() {
         const formData = new FormData();
         formData.append("file", file);
         try {
-          const uploadRes = await fetch("/api/upload-scan", { method: "POST", body: formData });
+          const uploadRes = await fetch("/api/upload-scan", { method: "POST", body: formData, headers: getAuthHeaders(null) });
           const uploadData = await uploadRes.json();
           if (uploadRes.ok) uploadedNames.push(uploadData.filename);
         } catch (error) { console.error("Upload error for", file.name, error); }
@@ -319,7 +342,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ query: userMessage, filenames: filesToAttach, session_id: activeSessionId }),
         signal: abortControllerRef.current.signal
       });
@@ -440,7 +463,7 @@ export default function DashboardPage() {
                   {menuOpenId === session.id && (
                     <div className="absolute right-0 top-10 z-50 w-32 bg-[#1A1A24] border border-white/10 rounded-lg shadow-xl py-1 overflow-hidden" onClick={e => e.stopPropagation()}>
                       <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"><Share size={12}/> Share</button>
-                      <button onClick={async (e) => { e.stopPropagation(); setSessions(sessions.filter(s => s.id !== session.id)); if(activeSessionId === session.id) { setMessages([]); setActiveSessionId(null); } setMenuOpenId(null); try { await fetch(`/api/sessions/${session.id}`, { method: 'DELETE' }); } catch (error) {} }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"><Trash2 size={12}/> Delete</button>
+                      <button onClick={async (e) => { e.stopPropagation(); setSessions(sessions.filter(s => s.id !== session.id)); if(activeSessionId === session.id) { setMessages([]); setActiveSessionId(null); } setMenuOpenId(null); try { await fetch(`/api/sessions/${session.id}`, { method: 'DELETE' , headers: getAuthHeaders() }); } catch (error) {} }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"><Trash2 size={12}/> Delete</button>
                     </div>
                   )}
                 </div>
