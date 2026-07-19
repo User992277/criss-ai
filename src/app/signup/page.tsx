@@ -15,7 +15,7 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email) return; // REMOVED: password check
 
     setIsLoading(true);
     setMessage(null);
@@ -24,7 +24,7 @@ export default function SignupPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }), // REMOVED: password from payload
       });
 
       const data = await res.json();
@@ -32,10 +32,10 @@ export default function SignupPage() {
       if (res.ok) {
         setMessage({ text: "Magic link sent! Please check your email to verify.", type: "success" });
         setEmail("");
-        setPassword("");
-      } else {
-        setMessage({ text: data.error || "Failed to register.", type: "error" });
+        // REMOVED: setPassword("");
+      } else {        setMessage({ text: data.error || "Failed to register.", type: "error" });
       }
+
     } catch (error) {
       setMessage({ text: "Cannot connect to server.", type: "error" });
     } finally {
@@ -72,32 +72,14 @@ export default function SignupPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2">
-                Master Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Key size={16} className="text-white/30" />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  required
-                  disabled={isLoading}
-                  className="w-full bg-[#14141E] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-[#F5F3EE] placeholder:text-white/20 focus:outline-none focus:border-[#C9A570]/50 focus:ring-1 focus:ring-[#C9A570]/50 transition-all"
-                />
-              </div>
-            </div>
+            
 
             <button
               type="submit"
-              disabled={isLoading || !email || !password}
+              disabled={isLoading || !email} // REMOVED: || !password
               className="w-full mt-2 bg-[#C9A570] hover:bg-[#dab689] text-[#0B0B12] font-medium rounded-xl px-4 py-3.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <>Initialize Account <ArrowRight size={18} /></>}
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <> LOGIN <ArrowRight size={18} /></>}
             </button>
           </form>
 

@@ -494,7 +494,7 @@ export default function DashboardPage() {
         </header>
 
         {/* CHAT LOG AREA */}
-        <div className="relative flex-1 px-8 overflow-y-auto flex flex-col items-center pb-40">
+        <div className="relative flex-1 min-h-0 px-8 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] flex flex-col items-center pb-6">
           {messages.length === 0 ? (
             <div className="my-auto text-center max-w-lg mt-32">
               <h2 className="font-[family-name:var(--font-display)] text-3xl mb-4 text-[#F5F3EE]">How can I help you today?</h2>
@@ -557,7 +557,7 @@ export default function DashboardPage() {
         </div>
 
         {/* UNIFIED INPUT STRIP */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 pb-4 md:p-6 md:pt-0 bg-gradient-to-t from-[#0B0B12] via-[#0B0B12] to-transparent">
+        <div className="shrink-0 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 md:pt-0 bg-gradient-to-t from-[#0B0B12] via-[#0B0B12] to-transparent">
           <div className="flex justify-center mb-4 h-8">
             {isStreaming && (
               <button onClick={() => abortControllerRef.current?.abort()} className="bg-[#1A1A24] border border-white/10 hover:border-[#C9A570]/50 text-white/60 hover:text-[#C9A570] px-4 py-1.5 rounded-full text-xs flex items-center gap-2 transition-all shadow-lg">

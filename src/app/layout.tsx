@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="fixed inset-0 h-[100dvh] w-full overflow-hidden overscroll-none"
     >
       <body className="h-[100dvh] w-full overflow-hidden overscroll-none bg-[#0B0B12]">
         {children}
