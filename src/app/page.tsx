@@ -439,11 +439,19 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className={`${fraunces.variable} ${inter.variable} ${mono.variable} flex h-screen overflow-hidden bg-[#0B0B12] text-[#F2F0EA] font-[family-name:var(--font-body)]`} onClick={() => setMenuOpenId(null)}>
+    <div className={`${fraunces.variable} ${inter.variable} ${mono.variable} flex h-[100dvh] overflow-hidden bg-[#0B0B12] text-[#F2F0EA] font-[family-name:var(--font-body)] w-full`} onClick={() => setMenuOpenId(null)}>
       <div className="pointer-events-none absolute -top-40 left-[20%] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-[#C9A570]/5 blur-[140px]" />
       
+      {/* MOBILE OVERLAY (Closes sidebar when clicking outside on phones) */}
+      {isSidebarOpen && (
+        <div 
+          className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <div className={`relative z-10 border-r border-white/5 bg-[#0F0F18]/80 backdrop-blur-md flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[260px]' : 'w-0 overflow-hidden border-r-0'}`}>
+      <div className={`absolute md:relative z-50 h-[100dvh] border-r border-white/5 bg-[#0F0F18]/95 md:bg-[#0F0F18]/80 backdrop-blur-xl flex flex-col justify-between shrink-0 transition-transform md:transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 w-[260px] md:w-0 overflow-hidden md:border-r-0'}`}>
         <div className="flex-1 flex flex-col overflow-hidden w-[260px]">
           <div className="p-4 pt-6 flex flex-col gap-6">
             <h1 className="font-[family-name:var(--font-display)] text-xl italic font-medium tracking-tight text-[#F5F3EE] flex items-center gap-2 pl-2"><ShieldAlert className="text-[#C9A570]" size={20}/>CRIS AI</h1>
@@ -549,7 +557,7 @@ export default function DashboardPage() {
         </div>
 
         {/* UNIFIED INPUT STRIP */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 pt-0 bg-gradient-to-t from-[#0B0B12] via-[#0B0B12] to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-3 pb-4 md:p-6 md:pt-0 bg-gradient-to-t from-[#0B0B12] via-[#0B0B12] to-transparent">
           <div className="flex justify-center mb-4 h-8">
             {isStreaming && (
               <button onClick={() => abortControllerRef.current?.abort()} className="bg-[#1A1A24] border border-white/10 hover:border-[#C9A570]/50 text-white/60 hover:text-[#C9A570] px-4 py-1.5 rounded-full text-xs flex items-center gap-2 transition-all shadow-lg">
