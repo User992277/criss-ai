@@ -230,6 +230,20 @@ export default function LoginPage() {
               {message.text}
             </div>
           )}
+
+          {/* 🚀 NEW: Dynamic Redirect Link to Signup Page */}
+          {step === "email" && (
+            <p className="mt-8 text-center text-sm text-white/40">
+              {"Don't have an account? "}
+              <a 
+                href="/signup" 
+                className="text-[#C9A570] hover:text-[#dab689] transition-colors font-medium"
+              >
+                Request access here
+              </a>
+            </p>
+          )}
+
         </div>
       </div>
 
