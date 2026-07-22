@@ -2,12 +2,58 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
-import { ArrowUp, MessageSquare, Plus, ShieldAlert, Loader2, MoreVertical, Trash2, Share, Square, FileText, X, Paperclip, Menu, Terminal, LogOut } from "lucide-react";
+import { 
+  ArrowUp, MessageSquare, Plus, ShieldAlert, Loader2, MoreVertical, 
+  Trash2, Share, Square, FileText, X, Paperclip, Menu, Terminal, LogOut,
+  Search, Edit2, Check, Settings, Sun, Moon, Monitor, Zap, Copy
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["400", "500"], style: ["italic"], variable: "--font-display" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
+export default function DashboardPage() {
+
+  interface Session { id: string; title: string; created_at: string; }
+
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+
+  const router = useRouter();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [activeFileNames, setActiveFileNames] = useState<string[]>([]);
+  
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
+  const [isThinking, setIsThinking] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const [currentQuery, setCurrentQuery] = useState("");
+  const [currentHasFile, setCurrentHasFile] = useState(false);
+
+  // NEW STYLING STATES FOR INTERACTIVE COMPONENT RETRIEVAL
+  const [viewingFile, setViewingFile] = useState<{ name: string; content: string } | null>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null); 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light" | "system">("dark");
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("authenticated.user@criss-ai.online");
+
+
 
 interface ChatMessage {
   role: string;
@@ -29,6 +75,10 @@ function ProcessingStatus({ query, hasFile }: ProcessingStatusProps) {
     const interval = setInterval(() => setStepIndex((prev) => (prev + 1) % currentSteps.length), 4000); 
     return () => clearInterval(interval);
   }, [currentSteps.length]);
+
+  // Handler to share chat link to clipboard
+
+
 
   return (
     <div className="flex items-start gap-4 max-w-2xl w-full my-4 ml-5">
@@ -182,34 +232,18 @@ function FormatMessageContent({ content }: { content: string }) {
     </div>
   );
 }
-export default function DashboardPage() {
 
-  const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [sessions, setSessions] = useState<{id: string, title: string, created_at: string}[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [activeFileNames, setActiveFileNames] = useState<string[]>([]);
-  
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
-  const [isThinking, setIsThinking] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  
-  const [currentQuery, setCurrentQuery] = useState("");
-  const [currentHasFile, setCurrentHasFile] = useState(false);
-
-  // NEW STYLING STATES FOR INTERACTIVE COMPONENT RETRIEVAL
-  const [viewingFile, setViewingFile] = useState<{ name: string; content: string } | null>(null);
-  const [isLoadingFile, setIsLoadingFile] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null); 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController>(null);
+  useEffect(() => {
+    const token = localStorage.getItem("csad_token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload && payload.sub) setUserEmail(payload.sub);
+      } catch (e) {
+        /* Fallback to default user display */
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("csad_token");
@@ -381,9 +415,7 @@ export default function DashboardPage() {
         } catch (e) { /* malformed/partial JSON fragment - drop silently */ }
       };
 
-      // Drains as many complete events as possible from incomingBuffer.
-      // On finalFlush, also treats any leftover un-terminated line as a
-      // complete event, since a proxy can swallow the trailing \n\n.
+      
       const drainBuffer = (finalFlush = false) => {
         let boundary = incomingBuffer.indexOf('\n\n');
         while (boundary !== -1) {
@@ -437,6 +469,38 @@ export default function DashboardPage() {
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return parseFloat((bytes / Math.pow(1024, i)).toFixed(1)) + ' ' + ['Bytes', 'KB', 'MB', 'GB'][i];
   };
+  
+  // Handler to save renamed chat title to Flask backend
+  const handleRenameSession = async (sessionId: string) => {
+    if (!editingTitle.trim()) {
+      setEditingSessionId(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ title: editingTitle }),
+      });
+      if (res.ok) {
+        setSessions((prev: Session[]) =>
+          prev.map(s => (s.id === sessionId ? { ...s, title: editingTitle } : s))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to rename session:", e);
+    } finally {
+      setEditingSessionId(null);
+      setEditingTitle("");
+    }
+  };
+
+  const handleShareSession = (sessionId: string) => {
+    const shareUrl = `${window.location.origin}?session=${sessionId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedSessionId(sessionId);
+    setTimeout(() => setCopiedSessionId(null), 2000);
+  };
 
   return (
     <div className={`${fraunces.variable} ${inter.variable} ${mono.variable} flex h-[100dvh] overflow-hidden bg-[#0B0B12] text-[#F2F0EA] font-[family-name:var(--font-body)] w-full`} onClick={() => setMenuOpenId(null)}>
@@ -453,31 +517,127 @@ export default function DashboardPage() {
       {/* SIDEBAR */}
       <div className={`absolute md:relative z-50 h-[100dvh] border-r border-white/5 bg-[#0F0F18]/95 md:bg-[#0F0F18]/80 backdrop-blur-xl flex flex-col justify-between shrink-0 transition-transform md:transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 w-[260px] md:w-0 overflow-hidden md:border-r-0'}`}>
         <div className="flex-1 flex flex-col overflow-hidden w-[260px]">
-          <div className="p-4 pt-6 flex flex-col gap-6">
-            <h1 className="font-[family-name:var(--font-display)] text-xl italic font-medium tracking-tight text-[#F5F3EE] flex items-center gap-2 pl-2"><ShieldAlert className="text-[#C9A570]" size={20}/>CRIS AI</h1>
-            <button onClick={() => { setMessages([]); setActiveSessionId(null); setActiveFileNames([]); setPendingFiles([]); }} className="w-full flex items-center gap-3 rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 cursor-pointer shadow-sm"><Plus className="text-[#C9A570]" size={16}/> <span>New Audit</span></button>
-            <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-white/50 hover:text-[#C9A570] hover:bg-white/10 hover:border-[#C9A570]/30 transition-all text-sm font-medium"><LogOut size={16}/> Disconnect Session</button>
+          
+          {/* TOP SECTION: LOGO, NEW AUDIT & SEARCH */}
+          <div className="p-4 pt-6 flex flex-col gap-4 shrink-0">
+            <h1 className="font-[family-name:var(--font-display)] text-xl italic font-medium tracking-tight text-[#F5F3EE] flex items-center gap-2 pl-2">
+              <ShieldAlert className="text-[#C9A570]" size={20}/>CRIS AI
+            </h1>
+            <button 
+              onClick={() => { setMessages([]); setActiveSessionId(null); setActiveFileNames([]); setPendingFiles([]); }} 
+              className="w-full flex items-center gap-3 rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 cursor-pointer shadow-sm"
+            >
+              <Plus className="text-[#C9A570]" size={16}/> <span>New Audit</span>
+            </button>
+
+            {/* CHAT SEARCH BAR */}
+            <div className="relative w-full mt-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={14} />
+              <input 
+                type="text"
+                placeholder="Search audits..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white/5 border border-white/5 rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#F5F3EE] placeholder-white/30 focus:outline-none focus:border-[#C9A570]/40 font-mono transition-all"
+              />
+            </div>
           </div>
-          <div className="px-3 flex-1 overflow-y-auto pb-4 mt-2">
-            <span className="text-[10px] font-medium text-white/30 uppercase pl-3 mb-3 block tracking-wider">Recent</span>
+
+          {/* MIDDLE SECTION: CHAT HISTORY LIST WITH INLINE RENAME */}
+          <div className="px-3 flex-1 overflow-y-auto pb-4 mt-1"> 
+            <span className="text-[10px] font-medium text-white/30 uppercase pl-3 mb-2 block tracking-wider">Recent</span>
             <div className="space-y-1">
-              {sessions.map((session) => (
+              {sessions
+                .filter(session => session.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((session) => (
                 <div key={session.id} className="relative group">
-                  <button onClick={() => handleLoadSession(session.id, session.title)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all text-sm ${activeSessionId === session.id ? 'bg-[#1A1A24] text-white/90' : 'bg-transparent text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
-                    <MessageSquare className={`shrink-0 ${activeSessionId === session.id ? 'text-[#C9A570]' : 'text-white/40'}`} size={14}/>
-                    <span className="truncate">{session.title}</span>
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === session.id ? null : session.id); }} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-opacity ${menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}><MoreVertical size={14}/></button>
-                  {menuOpenId === session.id && (
-                    <div className="absolute right-0 top-10 z-50 w-32 bg-[#1A1A24] border border-white/10 rounded-lg shadow-xl py-1 overflow-hidden" onClick={e => e.stopPropagation()}>
-                      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"><Share size={12}/> Share</button>
-                      <button onClick={async (e) => { e.stopPropagation(); setSessions(sessions.filter(s => s.id !== session.id)); if(activeSessionId === session.id) { setMessages([]); setActiveSessionId(null); } setMenuOpenId(null); try { await fetch(`/api/sessions/${session.id}`, { method: 'DELETE' , headers: getAuthHeaders() }); } catch (error) {} }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"><Trash2 size={12}/> Delete</button>
+                  {editingSessionId === session.id ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[#1A1A24] border border-[#C9A570]/40">
+                      <input 
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleRenameSession(session.id); }}
+                        autoFocus
+                        className="w-full bg-transparent text-xs text-white focus:outline-none font-mono"
+                      />
+                      <button onClick={() => handleRenameSession(session.id)} className="text-[#C9A570] hover:text-white p-1">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={() => setEditingSessionId(null)} className="text-white/40 hover:text-white p-1">
+                        <X size={13} />
+                      </button>
                     </div>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => handleLoadSession(session.id, session.title)} 
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all text-sm ${activeSessionId === session.id ? 'bg-[#1A1A24] text-white/90' : 'bg-transparent text-white/50 hover:bg-white/5 hover:text-white/80'}`}
+                      >
+                        <MessageSquare className={`shrink-0 ${activeSessionId === session.id ? 'text-[#C9A570]' : 'text-white/40'}`} size={14}/>
+                        <span className="truncate pr-4">{session.title}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === session.id ? null : session.id); }} 
+                        className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-opacity ${menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                      >
+                        <MoreVertical size={14}/>
+                      </button>
+                      
+                      {menuOpenId === session.id && (
+                        <div className="absolute right-0 top-10 z-50 w-36 bg-[#1A1A24] border border-white/10 rounded-lg shadow-xl py-1 overflow-hidden" onClick={e => e.stopPropagation()}>
+                          <button 
+                            onClick={() => { setEditingSessionId(session.id); setEditingTitle(session.title); setMenuOpenId(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"
+                          >
+                            <Edit2 size={12}/> Rename
+                          </button>
+                          <button 
+                            onClick={() => { handleShareSession(session.id); setMenuOpenId(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"
+                          >
+                            {copiedSessionId === session.id ? <Check size={12} className="text-green-400"/> : <Share size={12}/>}
+                            {copiedSessionId === session.id ? "Link Copied!" : "Share Link"}
+                          </button>
+                          <button 
+                            onClick={async (e) => { 
+                              e.stopPropagation(); 
+                              setSessions(sessions.filter(s => s.id !== session.id)); 
+                              if(activeSessionId === session.id) { setMessages([]); setActiveSessionId(null); } 
+                              setMenuOpenId(null); 
+                              try { await fetch(`/api/sessions/${session.id}`, { method: 'DELETE' , headers: getAuthHeaders() }); } catch (error) {} 
+                            }} 
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left border-t border-white/5 mt-1"
+                          >
+                            <Trash2 size={12}/> Delete
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
             </div>
           </div>
+
+          {/* BOTTOM FIXED UTILITIES CONTAINER */}
+          <div className="p-4 border-t border-white/5 space-y-2 mt-auto shrink-0 bg-[#0B0B12]/40">
+            <button 
+              onClick={() => setIsSettingsOpen(true)} 
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-white/70 hover:text-[#C9A570] hover:bg-white/10 hover:border-[#C9A570]/30 transition-all text-xs font-medium cursor-pointer"
+            >
+              <Settings size={15}/> Settings & Preferences
+            </button>
+            
+            <button 
+              onClick={handleLogout} 
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-white/50 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all text-xs font-medium cursor-pointer"
+            >
+              <LogOut size={15}/> Disconnect Session
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -659,6 +819,113 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* CENTRALIZED SETTINGS MODAL */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4" onClick={() => setIsSettingsOpen(false)}>
+          <div className="bg-[#14141E] border border-white/10 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            
+            {/* MODAL HEADER */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
+              <div className="flex items-center gap-2">
+                <Settings className="text-[#C9A570]" size={18}/>
+                <span className="font-medium text-sm text-white/90">System Settings</span>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition">
+                <X size={18}/>
+              </button>
+            </div>
+
+            {/* MODAL BODY */}
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              
+              {/* ACCOUNT & TIER SECTION */}
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-mono text-white/40 block">Authenticated Account</span>
+                  <span className="text-xs font-mono text-[#F5F3EE] truncate max-w-[220px] block">{userEmail}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-[#C9A570]/10 border border-[#C9A570]/30 px-3 py-1 rounded-full">
+                  <Zap size={12} className="text-[#C9A570] fill-current" />
+                  <span className="text-[11px] font-mono font-semibold text-[#C9A570]">PRO ACCESS</span>
+                </div>
+              </div>
+
+              {/* TOKEN USAGE METER */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="text-white/60">Free Tier Token Allowance</span>
+                  <span className="text-[#C9A570]">250,000 / 250,000 Tokens</span>
+                </div>
+                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                  <div className="h-full bg-gradient-to-r from-[#C9A570] to-[#dab689] w-full" />
+                </div>
+                <span className="text-[10px] font-mono text-white/30 block text-right">Quota resets every 5 hours</span>
+              </div>
+
+              {/* THEME TOGGLE */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-white/70 block">Appearance Theme</label>
+                <div className="grid grid-cols-3 gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
+                  <button 
+                    onClick={() => setTheme("dark")} 
+                    className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-mono transition-all ${theme === 'dark' ? 'bg-[#1A1A24] text-[#C9A570] border border-white/10 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                  >
+                    <Moon size={13}/> Dark
+                  </button>
+                  <button 
+                    onClick={() => setTheme("light")} 
+                    className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-mono transition-all ${theme === 'light' ? 'bg-[#1A1A24] text-[#C9A570] border border-white/10 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                  >
+                    <Sun size={13}/> Light
+                  </button>
+                  <button 
+                    onClick={() => setTheme("system")} 
+                    className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-mono transition-all ${theme === 'system' ? 'bg-[#1A1A24] text-[#C9A570] border border-white/10 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                  >
+                    <Monitor size={13}/> System
+                  </button>
+                </div>
+              </div>
+
+              {/* TIER PARAMETERS OVERVIEW TABLE */}
+              <div className="space-y-2 pt-2 border-t border-white/5">
+                <span className="text-xs font-medium text-white/70 block">Tier Capabilities & Limits</span>
+                <div className="rounded-xl border border-white/5 overflow-hidden text-xs font-mono">
+                  <div className="grid grid-cols-2 p-2.5 bg-white/5 text-white/40 text-[10px] uppercase tracking-wider">
+                    <span>Feature</span>
+                    <span>Pro Parameter</span>
+                  </div>
+                  <div className="divide-y divide-white/5 text-white/70 bg-black/20">
+                    <div className="grid grid-cols-2 p-2.5">
+                      <span>Code Input Limit</span>
+                      <span className="text-[#C9A570]">Up to 2,000 lines (Free) / 30k+ (Pro)</span>
+                    </div>
+                    <div className="grid grid-cols-2 p-2.5">
+                      <span>Data Retention</span>
+                      <span className="text-[#C9A570]">Permanent Storage</span>
+                    </div>
+                    <div className="grid grid-cols-2 p-2.5">
+                      <span>Rate Limiter</span>
+                      <span className="text-[#C9A570]">Anti-Bot Protection Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div className="p-4 border-t border-white/5 bg-white/5 flex justify-end">
+              <button onClick={() => setIsSettingsOpen(false)} className="px-4 py-2 rounded-xl bg-[#C9A570] text-[#0B0B12] text-xs font-medium font-mono hover:bg-[#dab689] transition">
+                Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
