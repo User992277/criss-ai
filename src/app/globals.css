@@ -132,3 +132,28 @@ html.light-mode .text-white\/30,
 html.light-mode .text-white\/20 {
   color: #6B7280 !important;
 }
+/* --- 11. Protect Code Blocks in Light Mode (Keep them Dark) --- */
+
+/* Ensure the code block container stays dark and border is visible */
+html.light-mode .bg-\[\#12121A\] {
+  background-color: #111827 !important; 
+  border-color: #374151 !important;
+}
+
+/* Restore the main white text color specifically inside the code block */
+html.light-mode .bg-\[\#12121A\].text-\[\#F5F3EE\] {
+  color: #F3F4F6 !important; 
+}
+
+/* Restore the dark-mode header background and border for the code block */
+html.light-mode .bg-\[\#12121A\] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+html.light-mode .bg-\[\#12121A\] .border-white\/5 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Restore the dim text for the language label, copy button, and code comments */
+html.light-mode .bg-\[\#12121A\] .text-white\/40 {
+  color: #9CA3AF !important; 
+}
