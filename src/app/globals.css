@@ -58,7 +58,8 @@ body {
   background: #4b5563; 
 }
 
-/* Light mode overrides */
+
+/* --- COMPREHENSIVE LIGHT MODE OVERRIDES --- */
 html.light-mode {
   color-scheme: light;
 }
@@ -68,26 +69,66 @@ html.light-mode body {
   color: #1A1D20 !important;
 }
 
+/* 1. Fix Main Backgrounds */
 html.light-mode .bg-\[\#0B0B12\],
 html.light-mode .bg-\[\#0F0F18\],
 html.light-mode .bg-\[\#14141E\] {
   background-color: #FFFFFF !important;
 }
 
+/* 2. Fix AI Message Text (Targets the specific /90 opacity) */
+html.light-mode .text-\[\#F5F3EE\]\/90,
+html.light-mode .text-\[\#F5F3EE\] {
+  color: #1A1D20 !important;
+}
+
+/* 3. Fix User Chat Bubble Text */
+html.light-mode .text-white\/90,
+html.light-mode .text-white\/80,
+html.light-mode .text-white\/70 {
+  color: #1A1D20 !important;
+}
+
+/* 4. Fix User Chat Bubble Background */
+html.light-mode .bg-\[\#1A1A24\] {
+  background-color: #F3F4F6 !important;
+  color: #111827 !important;
+}
+
+/* 5. Fix the dark gradient smear at the bottom of the screen */
+html.light-mode .from-\[\#0B0B12\] {
+  background-image: linear-gradient(to top, #F8F9FA 20%, rgba(248, 249, 250, 0.8) 60%, transparent) !important;
+}
+
+/* 6. Fix the Input Box Background */
+html.light-mode .bg-\[\#14141E\]\/90 {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 7. Fix Input Box Focus State */
+html.light-mode .focus-within\:bg-\[\#1A1A24\]\/90:focus-within {
+  background-color: #FFFFFF !important;
+  border-color: #C9A570 !important;
+}
+
+/* 8. Fix Input Text Placeholder */
+html.light-mode .placeholder-white\/25::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* 9. Fix General Borders */
 html.light-mode .border-white\/5,
-html.light-mode .border-white\/10 {
+html.light-mode .border-white\/10,
+html.light-mode .border-white\/\[0\.03\] {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-html.light-mode .text-white\/90,
-html.light-mode .text-white\/80,
-html.light-mode .text-white\/70,
-html.light-mode .text-\[\#F5F3EE\] {
-  color: #1F2937 !important;
-}
-
+/* 10. Fix Sidebar Icons & Dim Text */
 html.light-mode .text-white\/50,
 html.light-mode .text-white\/40,
-html.light-mode .text-white\/30 {
+html.light-mode .text-white\/30,
+html.light-mode .text-white\/20 {
   color: #6B7280 !important;
 }
