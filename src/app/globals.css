@@ -57,3 +57,37 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4b5563; 
 }
+
+/* Light mode overrides */
+html.light-mode {
+  color-scheme: light;
+}
+
+html.light-mode body {
+  background-color: #F8F9FA !important;
+  color: #1A1D20 !important;
+}
+
+html.light-mode .bg-\[\#0B0B12\],
+html.light-mode .bg-\[\#0F0F18\],
+html.light-mode .bg-\[\#14141E\] {
+  background-color: #FFFFFF !important;
+}
+
+html.light-mode .border-white\/5,
+html.light-mode .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light-mode .text-white\/90,
+html.light-mode .text-white\/80,
+html.light-mode .text-white\/70,
+html.light-mode .text-\[\#F5F3EE\] {
+  color: #1F2937 !important;
+}
+
+html.light-mode .text-white\/50,
+html.light-mode .text-white\/40,
+html.light-mode .text-white\/30 {
+  color: #6B7280 !important;
+}

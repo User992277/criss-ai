@@ -140,6 +140,8 @@ function renderTableHTML(rows: string[][], key: string) {
   );
 }
 
+
+
 function FormatMessageContent({ content }: { content: string }) {
   if (!content) return null;
   
@@ -234,13 +236,20 @@ function FormatMessageContent({ content }: { content: string }) {
 }
 
   useEffect(() => {
-    const token = localStorage.getItem("csad_token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        if (payload && payload.sub) setUserEmail(payload.sub);
-      } catch (e) {
-        /* Fallback to default user display */
+    // 1. Check localStorage for stored user email first
+    const storedEmail = localStorage.getItem("user_email");
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+    } else {
+      // 2. Fallback check from JWT token if available
+      const token = localStorage.getItem("csad_token");
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload && payload.email) setUserEmail(payload.email);
+        } catch (e) {
+          /* Fallback remains default */
+        }
       }
     }
   }, []);
@@ -254,6 +263,7 @@ function FormatMessageContent({ content }: { content: string }) {
 
   const getAuthHeaders = (contentType: string | null = "application/json") => {
     const token = localStorage.getItem("csad_token");
+    localStorage.setItem("user_email", userEmail);
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${token}`
     };
@@ -337,6 +347,21 @@ function FormatMessageContent({ content }: { content: string }) {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 300)}px`; 
   };
 
+  const TOTAL_TOKENS = 250000;
+  const [usedTokens, setUsedTokens] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cris_used_tokens");
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+
+  // Persist token usage locally
+  useEffect(() => {
+    localStorage.setItem("cris_used_tokens", usedTokens.toString());
+  }, [usedTokens]);
+
+  
   const handleSendMessage = async () => {
     if (!inputValue.trim() && pendingFiles.length === 0) return;
     if (isStreaming || isUploading) return;
@@ -358,7 +383,7 @@ function FormatMessageContent({ content }: { content: string }) {
       }
       setIsUploading(false);
     }
-
+    
     const userMessage = inputValue;
     const filesToAttach = uploadedNames; 
 
@@ -402,6 +427,13 @@ function FormatMessageContent({ content }: { content: string }) {
           }
           if (data.text) {
             setIsThinking(false);
+            
+            // --- NEW: TOKEN DEDUCTION LOGIC ---
+            // Calculates ~1 token per 4 characters streamed
+            const newTokens = Math.max(1, Math.ceil(data.text.length / 4));
+            setUsedTokens(prev => Math.min(TOTAL_TOKENS, prev + newTokens));
+            // ----------------------------------
+
             setMessages(prev => {
               const newMessages = [...prev];
               const lastIdx = newMessages.length - 1;
@@ -440,6 +472,7 @@ function FormatMessageContent({ content }: { content: string }) {
           drainBuffer(true);
           break;
         }
+        
 
         drainBuffer(false);
       }
@@ -501,6 +534,27 @@ function FormatMessageContent({ content }: { content: string }) {
     setCopiedSessionId(sessionId);
     setTimeout(() => setCopiedSessionId(null), 2000);
   };
+
+  // --- REAL-TIME THEME ENGINE ---
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("light-mode");
+      root.classList.remove("dark");
+    } else if (theme === "dark") {
+      root.classList.remove("light-mode");
+      root.classList.add("dark");
+    } else if (theme === "system") {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (prefersDark) {
+        root.classList.remove("light-mode");
+        root.classList.add("dark");
+      } else {
+        root.classList.add("light-mode");
+        root.classList.remove("dark");
+      }
+    }
+  }, [theme]);
 
   return (
     <div className={`${fraunces.variable} ${inter.variable} ${mono.variable} flex h-[100dvh] overflow-hidden bg-[#0B0B12] text-[#F2F0EA] font-[family-name:var(--font-body)] w-full`} onClick={() => setMenuOpenId(null)}>
@@ -850,16 +904,24 @@ function FormatMessageContent({ content }: { content: string }) {
                 </div>
               </div>
 
-              {/* TOKEN USAGE METER */}
+              {/* LIVE TOKEN USAGE METER */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-mono">
                   <span className="text-white/60">Free Tier Token Allowance</span>
-                  <span className="text-[#C9A570]">250,000 / 250,000 Tokens</span>
+                  <span className="text-[#C9A570]">
+                    {(TOTAL_TOKENS - usedTokens).toLocaleString()} / {TOTAL_TOKENS.toLocaleString()} Tokens Left
+                  </span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                  <div className="h-full bg-gradient-to-r from-[#C9A570] to-[#dab689] w-full" />
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#C9A570] to-[#dab689] transition-all duration-300"
+                    style={{ width: `${Math.max(0, ((TOTAL_TOKENS - usedTokens) / TOTAL_TOKENS) * 100)}%` }}
+                  />
                 </div>
-                <span className="text-[10px] font-mono text-white/30 block text-right">Quota resets every 5 hours</span>
+                <div className="flex justify-between text-[10px] font-mono text-white/30">
+                  <span>{(usedTokens).toLocaleString()} tokens consumed</span>
+                  <span>Quota resets every 5 hours</span>
+                </div>
               </div>
 
               {/* THEME TOGGLE */}
