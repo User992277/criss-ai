@@ -263,7 +263,6 @@ function FormatMessageContent({ content }: { content: string }) {
 
   const getAuthHeaders = (contentType: string | null = "application/json") => {
     const token = localStorage.getItem("csad_token");
-    localStorage.setItem("user_email", userEmail);
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${token}`
     };
@@ -272,6 +271,30 @@ function FormatMessageContent({ content }: { content: string }) {
     }
     return headers;
   };
+
+  useEffect(() => {
+  // 1. Check localStorage for stored user email first
+    const storedEmail = localStorage.getItem("user_email");
+    if (storedEmail && storedEmail !== "authenticated.user@criss-ai.online") {
+      setUserEmail(storedEmail);
+    } else {
+      // 2. Fallback: decode JWT to get the real email
+      const token = localStorage.getItem("csad_token");
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload && payload.email) {
+            setUserEmail(payload.email);
+            localStorage.setItem("user_email", payload.email);
+          }
+        } catch (e) {
+          /* Fallback remains default */
+        }
+      }
+    }
+  }, []);
+
+
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   
   useEffect(() => { fetchSessions(); }, []);
